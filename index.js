@@ -1,20 +1,42 @@
 import * as cheerio from 'cheerio';
 import fs from 'fs-extra'
 import path from 'path'
+import * as zipHandler from './zipHandler.js'
 
-export function bionifyBook(bookDirectory) {
-  const bionifiedBook = copyBook(bookDirectory) + '/OEBPS'
-  const bookFiles = fs.readdirSync(bionifiedBook)
-  
+export async function bionifyBook(bookDirectory) {
+  const bionifiedBook = await duplicateBook(bookDirectory)
+
+  const bookFiles = getFiles(bionifiedBook)
+
   for (let bookFile of bookFiles) {
-    bookFile = `${bionifiedBook}/${bookFile}`
     if (path.extname(bookFile) == '.html' || path.extname(bookFile) == '.xhtml') {
       fs.writeFileSync(bookFile, bionifyFile(bookFile))
     }
   }
 }
 
-function copyBook(bookDirectory) {
+
+
+// get all files from the directory recursively
+function getFiles(dir, files = []) {
+  // Get an array of all files and directories in the passed directory using fs.readdirSync
+  const fileList = fs.readdirSync(dir);
+  // Create the full path of the file/directory by concatenating the passed directory and file/directory name
+  for (const file of fileList) {
+    const name = `${dir}/${file}`;
+    // Check if the current file/directory is a directory using fs.statSync
+    if (fs.statSync(name).isDirectory()) {
+      // If it is a directory, recursively call the getFiles function with the directory path and the files array
+      getFiles(name, files);
+    } else {
+      // If it is a file, push the full path to the files array
+      files.push(name);
+    }
+  }
+  return files;
+}
+
+async function duplicateBook(bookDirectory) {
   const bookPath = path.parse(bookDirectory)
 
   const newPath = path.format({
@@ -22,9 +44,12 @@ function copyBook(bookDirectory) {
     name: bookPath.name += ' bionified',
     ext: '.epub'
   })
-  
-  console.log(newPath)
-  fs.copySync(bookDirectory, newPath)
+
+  if (await zipHandler.checkIfZipped(bookDirectory)) {
+    zipHandler.unzipBook(bookDirectory, newPath)
+  } else {
+    fs.copySync(bookDirectory, newPath)
+  }
 
   return newPath
 }
@@ -32,7 +57,7 @@ function copyBook(bookDirectory) {
 function bionifyFile(file) {
   const buffer = fs.readFileSync(file);
 
-  const $ = cheerio.load(buffer, {decodeEntities: false, xmlMode: true, recognizeSelfClosing: true});
+  const $ = cheerio.load(buffer, { decodeEntities: false, xmlMode: true, recognizeSelfClosing: true });
 
   const nodes = $('p, li')
 
