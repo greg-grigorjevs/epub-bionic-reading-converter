@@ -2,26 +2,32 @@ import * as cheerio from 'cheerio';
 import fs from 'fs-extra'
 import path from 'path'
 
-function bionifyBookTest(bookName) {
-  const testBook = bookName + ' test.epub'
-  fs.copySync(`${bookName}.epub`, testBook)
-
-  const bookFile = testBook + '/OEBPS/' + fs.readdirSync(testBook + '/OEBPS')[1]
-  console.log(bookFile)
-
-  fs.writeFileSync(bookFile, bionifyFile(bookFile))
-}
-
-function bionifyBook(bookDirectory) {
-  const bookFiles = fs.readdirSync(bookDirectory)
+export function bionifyBook(bookDirectory) {
+  const bionifiedBook = copyBook(bookDirectory) + '/OEBPS'
+  const bookFiles = fs.readdirSync(bionifiedBook)
+  
   for (let bookFile of bookFiles) {
-    bookFile = `${bookDirectory}/${bookFile}`
+    bookFile = `${bionifiedBook}/${bookFile}`
     if (path.extname(bookFile) == '.html' || path.extname(bookFile) == '.xhtml') {
       fs.writeFileSync(bookFile, bionifyFile(bookFile))
     }
   }
 }
 
+function copyBook(bookDirectory) {
+  const bookPath = path.parse(bookDirectory)
+
+  const newPath = path.format({
+    root: bookPath.root,
+    name: bookPath.name += ' bionified',
+    ext: '.epub'
+  })
+  
+  console.log(newPath)
+  fs.copySync(bookDirectory, newPath)
+
+  return newPath
+}
 
 function bionifyFile(file) {
   const buffer = fs.readFileSync(file);
