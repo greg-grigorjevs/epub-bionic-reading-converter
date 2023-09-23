@@ -44,6 +44,12 @@ async function duplicateBook(bookDirectory) {
     name: bookPath.name += ' bionified',
     ext: '.epub'
   })
+  
+  if (fs.existsSync(newPath)) {
+    console.log(`${newPath} alredy exists. Removing`);
+    fs.rmSync(newPath, {recursive: true, force: true});
+    console.log("Removed")
+  }
 
   if (await zipHandler.checkIfZipped(bookDirectory)) {
     zipHandler.unzipBook(bookDirectory, newPath)
