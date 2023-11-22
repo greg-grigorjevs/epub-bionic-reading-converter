@@ -3,13 +3,19 @@ import fs from 'fs-extra'
 import path from 'path'
 import * as zipHandler from './zipHandler.js'
 
+const formats = [
+  '.html',
+  '.xhtml',
+  '.htm'
+]
+
 export async function bionifyBook(bookDirectory) {
   const bionifiedBook = await duplicateBook(bookDirectory)
 
   const bookFiles = getFiles(bionifiedBook)
 
   for (let bookFile of bookFiles) {
-    if (path.extname(bookFile) == '.html' || path.extname(bookFile) == '.xhtml') {
+    if (formats.includes(path.extname(bookFile))) {
       fs.writeFileSync(bookFile, bionifyFile(bookFile))
     }
   }
@@ -81,6 +87,13 @@ function bionifyText(text) {
 }
 
 function bionifyWord(word) {
+  // skip empty strings
+  if (!word.match(/[a-zA-Z]/)) {
+    return word;
+  }
+
+  word = word.trim();
+  
   let wordLength = word.length;
   const chars = [',', '.']
 
